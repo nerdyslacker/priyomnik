@@ -1,0 +1,4 @@
+/priyomnik
+*.test
+/dist/
+/tests/

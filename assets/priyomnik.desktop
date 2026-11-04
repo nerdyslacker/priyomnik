@@ -1,0 +1,12 @@
+[Desktop Entry]
+Type=Application
+Version=1.0
+Name=Priyomnik
+GenericName=Internet Radio Player
+Comment=Minimal internet radio tray player
+Exec=priyomnik
+Icon=priyomnik
+Terminal=false
+Categories=AudioVideo;Player;
+Keywords=radio;stream;tray;
+StartupNotify=false

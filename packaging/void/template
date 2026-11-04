@@ -1,0 +1,17 @@
+pkgname=priyomnik
+version=0.1.0
+revision=1
+build_style=gnu-make
+make_install_args="PREFIX=/usr"
+hostmakedepends="go"
+depends="mpv"
+short_desc="Minimal internet radio tray player"
+maintainer="nerdyslacker <karyan40024@gmail.com>"
+license="MIT"
+homepage="https://github.com/nerdyslacker/priyomnik"
+distfiles="https://github.com/nerdyslacker/priyomnik/archive/v${version}.tar.gz"
+checksum=SKIP
+
+post_install() {
+	vlicense LICENSE
+}

@@ -1,0 +1,62 @@
+{
+  "volume": 60,
+  "volume_step": 5,
+  "autoplay": false,
+  "notifications": true,
+  "last_station": "soma-indie-pop-rocks",
+  "stations": [
+    {
+      "id": "radio-paradise",
+      "name": "Radio Paradise",
+      "url": "https://stream.radioparadise.com/mp3-128"
+    },
+    {
+      "id": "radio-paradise-mellow",
+      "name": "Radio Paradise Mellow Mix",
+      "url": "https://stream.radioparadise.com/mellow-128",
+      "group": "Favorites"
+    },
+    {
+      "id": "kiss-fm-armenia",
+      "name": "Kiss FM Armenia",
+      "url": "https://de.auroramedia.am/kissfm.mp3",
+      "group": "Armenian"
+    },
+    {
+      "id": "jazz24",
+      "name": "Jazz24",
+      "url": "https://knkx-live-a.edge.audiocdn.com/6285_128k",
+      "group": "Jazz"
+    },
+    {
+      "id": "radio-paradise-rock",
+      "name": "Radio Paradise Rock Mix",
+      "url": "https://stream.radioparadise.com/rock-128",
+      "group": "Rock"
+    },
+    {
+      "id": "classic-fm",
+      "name": "Classic FM",
+      "url": "https://media-ssl.musicradio.com/ClassicFMMP3",
+      "group": "Classical"
+    },
+    {
+      "id": "classical-king",
+      "name": "Classical KING FM",
+      "url": "https://classicalking.streamguys1.com/king-fm-aac-128k",
+      "group": "Classical"
+    },
+    {
+      "id": "radio-swiss-classic",
+      "name": "Radio Swiss Classic",
+      "url": "https://stream.srg-ssr.ch/m/rsc_de/mp3_128",
+      "group": "Classical"
+    },
+    {
+      "id": "soma-groove-salad",
+      "name": "SomaFM Groove Salad",
+      "url": "https://ice5.somafm.com/groovesalad-128-mp3",
+      "group": "Chill"
+    }
+  ]
+}
