@@ -20,6 +20,7 @@ type controlRequest struct {
 	Command string `json:"command"`
 	Station string `json:"station,omitempty"`
 	Volume  string `json:"volume,omitempty"`
+	Minutes string `json:"minutes,omitempty"`
 }
 
 type controlResponse struct {
@@ -228,6 +229,13 @@ func (a *trayApp) handleControl(req controlRequest) (controlResponse, bool) {
 		_, err = a.controlVolume(req.Volume)
 	case "mute":
 		_, err = a.player.ToggleMute()
+	case "sleep":
+		minutes, perr := parseSleepMinutes(req.Minutes)
+		if perr != nil {
+			err = perr
+		} else {
+			err = a.setSleepTimer(minutes)
+		}
 	case "status":
 	case "reload":
 		err = a.reload()
@@ -355,6 +363,13 @@ func cmdVolume(args []string, stdout, stderr io.Writer) int {
 		return cliUsage(stderr, "volume [+-]N")
 	}
 	return sendControl(controlRequest{Command: "volume", Volume: args[0]}, false, stdout, stderr)
+}
+
+func cmdSleep(args []string, stdout, stderr io.Writer) int {
+	if len(args) != 1 {
+		return cliUsage(stderr, "sleep N|off")
+	}
+	return sendControl(controlRequest{Command: "sleep", Minutes: args[0]}, false, stdout, stderr)
 }
 
 func cmdStatus(args []string, stdout, stderr io.Writer) int {

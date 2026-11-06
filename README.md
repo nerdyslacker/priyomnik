@@ -20,8 +20,8 @@ station editor uses the external `yad` dialog program.
 
 ## Features
 
-- Tray menu with stations, optional flat groups, stop, volume, mute, reload,
-  and quit.
+- Tray menu with stations, optional flat groups, stop, volume, mute, sleep
+  timer, reload, and quit.
 - Optional graphical station editor for adding, editing, and removing stations.
 - MPRIS v2 interface for desktop media keys and clients such as `playerctl`.
 - Stopped, connecting, playing, and error icons.
@@ -128,6 +128,7 @@ priyomnik next            Play next station
 priyomnik prev            Play previous station
 priyomnik volume [+-]N    Adjust volume
 priyomnik mute            Toggle mute
+priyomnik sleep N|off     Stop playback after N minutes, or cancel
 priyomnik status [--json] Show status
 priyomnik reload          Reload configuration
 priyomnik quit            Quit the running instance
@@ -147,6 +148,14 @@ Use `priyomnik status --json` for machine-readable output.
 Middle click and scroll use the StatusNotifierItem `SecondaryActivate` and
 `Scroll` events. Host support varies. Station selection, volume, mute, reload,
 station editing, and quit remain available from the menu and CLI.
+
+## Sleep timer
+
+The tray menu's **Sleep timer** submenu sets 15, 30, or 60 minutes, or turns
+the timer off. When it expires, Priyomnik stops playback and sends a desktop
+notification if something was playing. The timer is not persisted and is lost
+when the tray exits. The same control is available as `priyomnik sleep N` and
+`priyomnik sleep off`.
 
 ## MPRIS and media keys
 

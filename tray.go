@@ -11,6 +11,7 @@ import (
 	"sync"
 	"sync/atomic"
 	"syscall"
+	"time"
 
 	"fyne.io/systray"
 )
@@ -41,6 +42,11 @@ type trayApp struct {
 	dialogMu    sync.Mutex
 	mpris       atomic.Pointer[mprisServer]
 
+	sleepMu       sync.Mutex
+	sleepTimer    *time.Timer
+	sleepDuration time.Duration
+	sleepGen      uint64
+
 	menuMu       sync.Mutex
 	built        bool
 	lastState    State
@@ -54,6 +60,9 @@ type trayApp struct {
 	stopItem     *systray.MenuItem
 	volumeItem   *systray.MenuItem
 	muteItem     *systray.MenuItem
+	sleepItem    *systray.MenuItem
+	sleepPresets map[int]*systray.MenuItem
+	sleepOffItem *systray.MenuItem
 }
 
 func runTray() int {
@@ -219,6 +228,34 @@ func (a *trayApp) buildMenu() {
 	go func() {
 		for range mute.ClickedCh {
 			go a.toggleMute()
+		}
+	}()
+
+	sleepMinutes := a.sleepTimerMinutes()
+	sleep := systray.AddMenuItem("Sleep timer", "Stop playback after a delay")
+	if sleepMinutes > 0 {
+		sleep.SetTitle(fmt.Sprintf("Sleep timer: %dm", sleepMinutes))
+	}
+	a.sleepItem = sleep
+	a.sleepPresets = make(map[int]*systray.MenuItem, len(sleepMenuMinutes))
+	for _, preset := range sleepMenuMinutes {
+		item := sleep.AddSubMenuItemCheckbox(fmt.Sprintf("%d minutes", preset), "", sleepMinutes == preset)
+		a.sleepPresets[preset] = item
+		go func(item *systray.MenuItem, minutes int) {
+			for range item.ClickedCh {
+				go func() {
+					if err := a.setSleepTimer(minutes); err != nil {
+						slog.Error("sleep timer", "err", err)
+					}
+				}()
+			}
+		}(item, preset)
+	}
+	off := sleep.AddSubMenuItemCheckbox("Off", "Cancel sleep timer", sleepMinutes == 0)
+	a.sleepOffItem = off
+	go func() {
+		for range off.ClickedCh {
+			go a.cancelSleepTimer()
 		}
 	}()
 

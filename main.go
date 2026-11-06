@@ -17,6 +17,7 @@ Usage:
   priyomnik prev            Play previous station
   priyomnik volume [+-]N    Adjust volume
   priyomnik mute            Toggle mute
+  priyomnik sleep N|off     Stop playback after N minutes, or cancel
   priyomnik status [--json] Show status
   priyomnik reload          Reload configuration
   priyomnik quit            Quit the running instance
@@ -53,6 +54,8 @@ func run(args []string, stdout, stderr io.Writer) int {
 		return cmdVolume(args[1:], stdout, stderr)
 	case "mute":
 		return cmdNoArgs("mute", args[1:], stdout, stderr)
+	case "sleep":
+		return cmdSleep(args[1:], stdout, stderr)
 	case "status":
 		return cmdStatus(args[1:], stdout, stderr)
 	case "reload":
