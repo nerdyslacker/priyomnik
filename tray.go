@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	_ "embed"
 	"errors"
 	"fmt"
@@ -8,6 +9,7 @@ import (
 	"os"
 	"os/signal"
 	"sync"
+	"sync/atomic"
 	"syscall"
 
 	"fyne.io/systray"
@@ -34,6 +36,10 @@ type trayApp struct {
 	notifier    *notifier
 	controlSock string
 	control     *controlServer
+	ctx         context.Context
+	cancel      context.CancelFunc
+	dialogMu    sync.Mutex
+	mpris       atomic.Pointer[mprisServer]
 
 	menuMu       sync.Mutex
 	built        bool
@@ -79,6 +85,8 @@ func runTray() int {
 	}
 
 	player := NewPlayer(cfg.Volume)
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
 	app := &trayApp{
 		cfgPath:     path,
 		cfg:         cfg,
@@ -86,6 +94,8 @@ func runTray() int {
 		player:      player,
 		notifier:    newNotifier(),
 		controlSock: sock,
+		ctx:         ctx,
+		cancel:      cancel,
 	}
 
 	go func() {
@@ -96,6 +106,7 @@ func runTray() int {
 	}()
 
 	systray.Run(app.onReady, func() {
+		app.cancel()
 		app.closeControl()
 		app.notifier.Close()
 		if err := player.Close(); err != nil {
@@ -123,6 +134,7 @@ func (a *trayApp) onReady() {
 	if err := a.startControl(); err != nil {
 		slog.Error("start control socket", "err", err)
 	}
+	a.mpris.Store(startMPRIS(a))
 	go a.watchPlayer()
 
 	cfg := a.copyConfig()
@@ -211,6 +223,12 @@ func (a *trayApp) buildMenu() {
 	}()
 
 	systray.AddSeparator()
+	edit := systray.AddMenuItem("Edit stations...", "Add, edit, or remove stations")
+	go func() {
+		for range edit.ClickedCh {
+			go a.editStations()
+		}
+	}()
 	reload := systray.AddMenuItem("Reload stations", "Reload configuration")
 	go func() {
 		for range reload.ClickedCh {
@@ -241,13 +259,20 @@ func (a *trayApp) buildMenu() {
 
 func (a *trayApp) refresh() {
 	st := a.player.Snapshot()
+	if st.StationID != "" {
+		cfg := a.copyConfig()
+		if station, ok := findStation(cfg.Stations, st.StationID); ok {
+			st.StationName = station.Name
+		}
+	}
 
 	a.menuMu.Lock()
-	defer a.menuMu.Unlock()
 	if !a.built {
+		a.menuMu.Unlock()
 		return
 	}
 	if a.lastState == st {
+		a.menuMu.Unlock()
 		return
 	}
 
@@ -302,6 +327,11 @@ func (a *trayApp) refresh() {
 		a.notifier.enqueue(st)
 	}
 	a.lastState = st
+	a.menuMu.Unlock()
+
+	if m := a.mpris.Load(); m != nil {
+		m.update(st)
+	}
 }
 
 func (a *trayApp) notificationsEnabled() bool {

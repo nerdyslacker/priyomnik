@@ -4,7 +4,7 @@ revision=1
 build_style=gnu-make
 make_install_args="PREFIX=/usr"
 hostmakedepends="go"
-depends="mpv"
+depends="mpv yad"
 short_desc="Minimal internet radio tray player"
 maintainer="nerdyslacker <karyan40024@gmail.com>"
 license="MIT"

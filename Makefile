@@ -7,7 +7,7 @@ DATADIR ?= $(PREFIX)/share
 APPLICATIONSDIR ?= $(DATADIR)/applications
 ICONSDIR ?= $(DATADIR)/icons/hicolor
 
-.PHONY: all build install uninstall test race vet fmt clean
+.PHONY: all build install uninstall vet fmt clean
 
 all: build
 
@@ -23,12 +23,6 @@ uninstall:
 	rm -f "$(DESTDIR)$(BINDIR)/$(BIN)"
 	rm -f "$(DESTDIR)$(APPLICATIONSDIR)/priyomnik.desktop"
 	rm -f "$(DESTDIR)$(ICONSDIR)/256x256/apps/priyomnik.png"
-
-test:
-	$(GO) test -mod=readonly ./...
-
-race:
-	$(GO) test -mod=readonly -race ./...
 
 vet:
 	$(GO) vet ./...

@@ -15,12 +15,15 @@
 Priyomnik is a small tray-only internet radio player for Linux. It keeps one
 headless mpv process for playback, exposes playback and volume commands through
 a local Unix socket, and uses a StatusNotifierItem tray icon with a DBusMenu.
-There is no main window and no GUI toolkit.
+There is no main window and no GUI toolkit linked into Priyomnik; the optional
+station editor uses the external `yad` dialog program.
 
 ## Features
 
 - Tray menu with stations, optional flat groups, stop, volume, mute, reload,
   and quit.
+- Optional graphical station editor for adding, editing, and removing stations.
+- MPRIS v2 interface for desktop media keys and clients such as `playerctl`.
 - Stopped, connecting, playing, and error icons.
 - Station and artist/title metadata in the menu and tooltip.
 - Optional freedesktop notifications with duplicate suppression.
@@ -36,6 +39,7 @@ Runtime:
 - Linux with a StatusNotifierItem and DBusMenu host, such as KDE Plasma.
 - A D-Bus session bus.
 - `mpv` in `PATH`, with JSON IPC support.
+- Optional: `yad` in `PATH` for the tray menu's station editor.
 - Optional: a notification daemon implementing
   `org.freedesktop.Notifications`.
 
@@ -107,6 +111,12 @@ Each station has a unique `id`, a display `name`, an absolute HTTP or HTTPS
 the file from the tray or with `priyomnik reload`; invalid configuration is
 rejected without replacing the active settings.
 
+The tray menu's **Edit stations...** item opens a `yad` dialog for adding,
+editing, and removing stations. Leaving a new station's ID blank generates one
+from its name. Changes are validated and written atomically; the menu updates
+immediately. If `yad` is not installed, edit the JSON file and use **Reload
+stations** instead.
+
 ## CLI
 
 ```text
@@ -136,7 +146,25 @@ Use `priyomnik status --json` for machine-readable output.
 
 Middle click and scroll use the StatusNotifierItem `SecondaryActivate` and
 `Scroll` events. Host support varies. Station selection, volume, mute, reload,
-and quit remain available from the menu and CLI.
+station editing, and quit remain available from the menu and CLI.
+
+## MPRIS and media keys
+
+Priyomnik registers `org.mpris.MediaPlayer2.priyomnik` on the session bus. Desktop
+media keys and MPRIS clients control the running instance:
+
+```sh
+playerctl -p priyomnik play-pause
+playerctl -p priyomnik stop
+playerctl -p priyomnik next
+playerctl -p priyomnik previous
+playerctl -p priyomnik volume 0.5
+```
+
+Play, pause, stop, next/previous, and volume are supported. Seeking and
+`OpenUri` are not supported because live streams are not seekable. MPRIS is
+disabled silently when the session bus is unavailable or the name is already
+owned.
 
 ## Release builds and dependencies
 
@@ -155,8 +183,8 @@ The resulting binary is statically linked and stripped. Run `make vet` and
 
 A xbps-src template is provided at
 [`packaging/void/template`](packaging/void/template). It builds with the
-project Makefile, installs under `/usr`, depends on `mpv`, and installs the
-license.
+project Makefile, installs under `/usr`, depends on `mpv` and `yad`, and
+installs the license.
 
 After tagging a release as `v0.1.0`, compute the archive checksum and replace
 `REPLACE_AFTER_TAGGING_V0.1.0` in the template:

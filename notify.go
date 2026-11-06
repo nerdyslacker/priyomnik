@@ -92,6 +92,26 @@ func (n *notifier) send(st State) {
 	n.lastID = id
 }
 
+// notifyMessage sends a one-off desktop notification. It is used for errors
+// that have no other visible surface in a tray-only application.
+func notifyMessage(summary, body string) {
+	conn, err := dbus.SessionBus()
+	if err != nil {
+		slog.Debug("notification bus", "err", err)
+		return
+	}
+
+	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
+	defer cancel()
+	obj := conn.Object("org.freedesktop.Notifications", "/org/freedesktop/Notifications")
+	call := obj.CallWithContext(ctx, "org.freedesktop.Notifications.Notify", 0,
+		"Priyomnik", uint32(0), "", cleanText(summary), cleanText(body),
+		[]string{}, map[string]dbus.Variant{}, int32(5000))
+	if call.Err != nil {
+		slog.Debug("notification", "err", call.Err)
+	}
+}
+
 func notificationText(st State) (string, string) {
 	summary := st.StationName
 	body := "Playing"
