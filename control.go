@@ -336,12 +336,29 @@ func (a *trayApp) applyVolume(v int) (int, error) {
 		return v, err
 	}
 
+	id := a.player.Snapshot().StationID
+	if id == "" {
+		a.mu.RLock()
+		id = a.selected
+		a.mu.RUnlock()
+	}
+
 	a.mu.Lock()
 	changed := a.cfg.Volume != v
+	if idx := stationIndex(a.cfg.Stations, id); idx >= 0 {
+		saved := a.cfg.Stations[idx].Volume
+		if saved == nil || *saved != v {
+			changed = true
+		}
+	}
 	a.mu.Unlock()
 	if changed {
 		a.updateConfig(func(c *Config) {
 			c.Volume = v
+			if idx := stationIndex(c.Stations, id); idx >= 0 {
+				stationVolume := v
+				c.Stations[idx].Volume = &stationVolume
+			}
 		})
 	}
 	return v, nil

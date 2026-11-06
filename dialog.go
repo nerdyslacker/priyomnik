@@ -5,7 +5,10 @@ import (
 	"errors"
 	"fmt"
 	"log/slog"
+	"os"
 	"os/exec"
+	"path/filepath"
+	"strconv"
 	"strings"
 	"unicode"
 )
@@ -88,6 +91,9 @@ func (a *trayApp) showStationList(stations []Station) (int, Station, error) {
 		return stationActionAdd, Station{}, nil
 	case 4, 0:
 		if st, ok := parseStationRow(out); ok {
+			if full, found := findStation(stations, st.ID); found {
+				st.Volume = full.Volume
+			}
 			return stationActionEdit, st, nil
 		}
 		a.showError("Edit station", "Select a station first.")
@@ -208,11 +214,23 @@ func (a *trayApp) applyStationEdit(cfg *Config) error {
 	}
 	previous, had := findStation(old.Stations, active)
 	if !had || previous.URL != updated.URL {
+		a.restoreStationVolume(updated)
 		if err := a.player.Play(updated); err != nil {
 			slog.Error("restart edited station", "station", updated.ID, "err", err)
 		}
+		return nil
+	}
+	if !equalVolume(previous.Volume, updated.Volume) {
+		a.restoreStationVolume(updated)
 	}
 	return nil
+}
+
+func equalVolume(a, b *int) bool {
+	if a == nil || b == nil {
+		return a == nil && b == nil
+	}
+	return *a == *b
 }
 
 func (a *trayApp) showStationForm(st Station, editing bool) (Station, bool) {
@@ -222,41 +240,70 @@ func (a *trayApp) showStationForm(st Station, editing bool) (Station, bool) {
 		title = "Edit station"
 		idLabel = "ID"
 	}
-	args := []string{
-		"--form",
-		"--title=" + title,
-		"--separator=" + yadSep,
-		"--field=Name",
-		"--field=Group",
-		"--field=" + idLabel,
-		"--field=URL",
-		"--width=520",
-		"--button=Cancel:1",
-		"--button=Save:0",
-		"--",
-		st.Name, st.Group, st.ID, st.URL,
-	}
 
-	out, code, err := a.runYad(args...)
-	if err != nil {
-		slog.Error("station form dialog", "err", err)
-		return Station{}, false
-	}
-	if code != 0 {
-		return Station{}, false
-	}
+	for {
+		volumeText := ""
+		if st.Volume != nil {
+			volumeText = strconv.Itoa(*st.Volume)
+		}
+		args := []string{
+			"--form",
+			"--title=" + title,
+			"--separator=" + yadSep,
+			"--field=Name",
+			"--field=Group",
+			"--field=" + idLabel,
+			"--field=URL",
+			"--field=Volume (0-100, blank = global)",
+			"--width=520",
+			"--button=Cancel:1",
+			"--button=Save:0",
+			"--",
+			st.Name, st.Group, st.ID, st.URL, volumeText,
+		}
 
-	fields := splitYadFields(out)
-	if len(fields) < 4 {
-		slog.Error("station form dialog", "err", "unexpected output", "output", out)
-		return Station{}, false
+		out, code, err := a.runYad(args...)
+		if err != nil {
+			slog.Error("station form dialog", "err", err)
+			return Station{}, false
+		}
+		if code != 0 {
+			return Station{}, false
+		}
+
+		fields := splitYadFields(out)
+		if len(fields) < 5 {
+			slog.Error("station form dialog", "err", "unexpected output", "output", out)
+			return Station{}, false
+		}
+		filled := Station{
+			Name:  cleanField(fields[0]),
+			Group: cleanField(fields[1]),
+			ID:    cleanField(fields[2]),
+			URL:   cleanField(fields[3]),
+		}
+		stationVolume, err := parseStationVolume(fields[4])
+		if err != nil {
+			a.showError("Cannot save station", err.Error())
+			st = filled
+			continue
+		}
+		filled.Volume = stationVolume
+		return filled, true
 	}
-	return Station{
-		Name:  cleanField(fields[0]),
-		Group: cleanField(fields[1]),
-		ID:    cleanField(fields[2]),
-		URL:   cleanField(fields[3]),
-	}, true
+}
+
+// parseStationVolume returns nil for an empty value, meaning no station override.
+func parseStationVolume(raw string) (*int, error) {
+	raw = cleanField(raw)
+	if raw == "" {
+		return nil, nil
+	}
+	v, err := strconv.Atoi(raw)
+	if err != nil || v < 0 || v > 100 {
+		return nil, errors.New("volume must be a whole number from 0 to 100, or blank for the global volume")
+	}
+	return &v, nil
 }
 
 func (a *trayApp) confirmRemove(name string) bool {
@@ -289,6 +336,9 @@ func (a *trayApp) showError(title, message string) {
 }
 
 func (a *trayApp) runYad(args ...string) (string, int, error) {
+	if icon := a.yadIconPath(); icon != "" {
+		args = append([]string{"--window-icon=" + icon}, args...)
+	}
 	ctx := a.ctx
 	if ctx == nil {
 		ctx = context.Background()
@@ -313,6 +363,17 @@ func (a *trayApp) runYad(args ...string) (string, int, error) {
 		return "", -1, fmt.Errorf("%w: %s", err, strings.TrimSpace(stderr.String()))
 	}
 	return "", -1, err
+}
+
+func (a *trayApp) yadIconPath() string {
+	if a.controlSock == "" {
+		return ""
+	}
+	path := filepath.Join(filepath.Dir(a.controlSock), "dialog-icon.png")
+	if err := os.WriteFile(path, iconDialog, 0o600); err != nil {
+		return ""
+	}
+	return path
 }
 
 func splitYadFields(out string) []string {

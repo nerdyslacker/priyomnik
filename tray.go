@@ -28,6 +28,9 @@ var iconPlaying []byte
 //go:embed assets/icons/error.png
 var iconError []byte
 
+//go:embed assets/icons/priyomnik-dialog.png
+var iconDialog []byte
+
 type trayApp struct {
 	cfgPath     string
 	mu          sync.RWMutex
@@ -394,7 +397,18 @@ func (a *trayApp) playID(id string) error {
 
 func (a *trayApp) playStation(st Station) error {
 	a.setSelected(st.ID)
+	a.restoreStationVolume(st)
 	return a.player.Play(st)
+}
+
+func (a *trayApp) restoreStationVolume(st Station) {
+	volume := a.copyConfig().Volume
+	if st.Volume != nil {
+		volume = *st.Volume
+	}
+	if _, err := a.player.SetVolume(volume); err != nil {
+		slog.Error("restore station volume", "station", st.ID, "err", err)
+	}
 }
 
 func (a *trayApp) setSelected(id string) {
@@ -441,7 +455,11 @@ func (a *trayApp) reload() error {
 	a.mu.Unlock()
 
 	a.buildMenu()
-	if _, err := a.player.SetVolume(cfg.Volume); err != nil {
+	volume := cfg.Volume
+	if active, ok := findStation(cfg.Stations, a.player.Snapshot().StationID); ok && active.Volume != nil {
+		volume = *active.Volume
+	}
+	if _, err := a.player.SetVolume(volume); err != nil {
 		return err
 	}
 	return nil

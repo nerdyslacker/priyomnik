@@ -25,6 +25,7 @@ station editor uses the external `yad` dialog program.
 - Optional graphical station editor for adding, editing, and removing stations.
 - MPRIS v2 interface for desktop media keys and clients such as `playerctl`.
 - Stopped, connecting, playing, and error icons.
+- Per-station remembered volume.
 - Station and artist/title metadata in the menu and tooltip.
 - Optional freedesktop notifications with duplicate suppression.
 - Regular CLI control of the running instance.
@@ -107,15 +108,21 @@ cp config.example.json "${XDG_CONFIG_HOME:-$HOME/.config}/priyomnik/config.json"
 | `stations` | Ordered station list. |
 
 Each station has a unique `id`, a display `name`, an absolute HTTP or HTTPS
-`url`, and an optional `group`. Station and group order are preserved. Reload
-the file from the tray or with `priyomnik reload`; invalid configuration is
-rejected without replacing the active settings.
+`url`, an optional `group`, and an optional `volume` (0-100). Station and group
+order are preserved. Reload the file from the tray or with `priyomnik reload`;
+invalid configuration is rejected without replacing the active settings.
+
+Changing volume while a station is selected saves that station's `volume` and
+the global `volume`. Playing a station restores its saved `volume`; stations
+without one use the global volume. Remove a station's `volume` field to make it
+use the global volume again.
 
 The tray menu's **Edit stations...** item opens a `yad` dialog for adding,
 editing, and removing stations. Leaving a new station's ID blank generates one
-from its name. Changes are validated and written atomically; the menu updates
-immediately. If `yad` is not installed, edit the JSON file and use **Reload
-stations** instead.
+from its name. The add/edit form's **Volume** field sets that station's volume
+from 0 to 100; leave it blank for no station override. Changes are validated and
+written atomically; the menu updates immediately. If `yad` is not installed,
+edit the JSON file and use **Reload stations** instead.
 
 ## CLI
 

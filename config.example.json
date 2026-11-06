@@ -8,7 +8,8 @@
     {
       "id": "radio-paradise",
       "name": "Radio Paradise",
-      "url": "https://stream.radioparadise.com/mp3-128"
+      "url": "https://stream.radioparadise.com/mp3-128",
+      "volume": 55
     },
     {
       "id": "radio-paradise-mellow",

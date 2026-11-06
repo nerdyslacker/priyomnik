@@ -12,10 +12,11 @@ import (
 )
 
 type Station struct {
-	ID    string `json:"id"`
-	Name  string `json:"name"`
-	URL   string `json:"url"`
-	Group string `json:"group,omitempty"`
+	ID     string `json:"id"`
+	Name   string `json:"name"`
+	URL    string `json:"url"`
+	Group  string `json:"group,omitempty"`
+	Volume *int   `json:"volume,omitempty"`
 }
 
 type Config struct {
@@ -74,6 +75,10 @@ func (c *Config) Validate() error {
 		u, err := url.Parse(st.URL)
 		if err != nil || !isHTTP(u.Scheme) || u.Host == "" {
 			return fmt.Errorf("station %q: url %q must be an absolute http(s) URL", st.ID, st.URL)
+		}
+
+		if st.Volume != nil && (*st.Volume < 0 || *st.Volume > 100) {
+			return fmt.Errorf("station %q: volume %d out of range 0-100", st.ID, *st.Volume)
 		}
 	}
 	return nil
